@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'accounts',
     'rest_framework',  
     'corsheaders',
+    'channels'
 ]
 
 MIDDLEWARE = [
@@ -134,3 +135,17 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'agrisenseteam@gmail.com'  # your Gmail address
 EMAIL_HOST_PASSWORD = 'rtpe ktub lphk gyjd'  # your App Password
 DEFAULT_FROM_EMAIL = 'noreply@yourdomain.com'
+
+
+# Set ASGI application
+ASGI_APPLICATION = 'agrisense.routing.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
+
