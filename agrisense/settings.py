@@ -126,4 +126,11 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 ALLOWED_HOSTS = ['*']
 CORS_ALLOW_ALL_ORIGINS = True  # For development
-    
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'agrisenseteam@gmail.com'  # your Gmail address
+EMAIL_HOST_PASSWORD = 'rtpe ktub lphk gyjd'  # your App Password
+DEFAULT_FROM_EMAIL = 'noreply@yourdomain.com'
