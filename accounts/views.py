@@ -6,6 +6,8 @@ from rest_framework import status
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from .models import PasswordResetOTP
+from .serializers import SensorReadingSerializer, DailySummarySerializer
+
 
 @api_view(['POST'])
 def register_user(request):
@@ -105,3 +107,21 @@ def reset_password(request):
 
     except User.DoesNotExist:
         return Response({'message': 'User not found'}, status=404)
+
+
+
+@api_view(['POST'])
+def store_sensor_reading(request):
+    serializer = SensorReadingSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def store_daily_summary(request):
+    serializer = DailySummarySerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

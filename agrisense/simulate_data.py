@@ -6,7 +6,7 @@ import random
 from channels.layers import get_channel_layer
 
 # Add your project directory to the Python path
-sys.path.append("C:/Users/krist/agrisense")  # Update to your actual project path
+sys.path.append("D:\Gwyn\capstone\Agrisense_Backend")  # Update to your actual project path
 
 # Set the Django settings module
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "agrisense.settings")
