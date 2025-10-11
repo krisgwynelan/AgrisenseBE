@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from celery.schedules import crontab
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,7 +42,8 @@ INSTALLED_APPS = [
     'accounts',
     'rest_framework',  
     'corsheaders',
-    'channels'
+    'channels',
+    'django_celery_beat'
 ]
 
 MIDDLEWARE = [
@@ -138,14 +141,28 @@ DEFAULT_FROM_EMAIL = 'noreply@yourdomain.com'
 
 
 # Set ASGI application
-ASGI_APPLICATION = 'agrisense.routing.application'
+ASGI_APPLICATION = "agrisense.asgi.application"
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [("127.0.0.1", 6379)],
         },
     },
 }
+
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+
+CELERY_BEAT_SCHEDULE = {
+    "send-daily-soil-summary": {
+        "task": "accounts.tasks.send_daily_summary",
+        "schedule": crontab(hour=23, minute=59),
+    },
+}
+
+
+
+
 

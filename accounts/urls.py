@@ -12,4 +12,5 @@ urlpatterns = [
 
    path('store-reading/', store_sensor_reading, name='store_sensor_reading'),
    path('store-daily-summary/', store_daily_summary, name='store_daily_summary'),
+   
 ]

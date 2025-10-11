@@ -37,12 +37,24 @@ def login_user(request):
         return Response({'detail': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user = authenticate(username=email, password=password)
+        # check if email exists
+        try:
+            user_obj = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'detail': 'Email not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if user is not None:
-            return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'detail': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
+        # check password validity
+        user = authenticate(username=email, password=password)
+        if user is None:
+            return Response({'detail': 'Incorrect password.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # successful login
+        return Response({
+            'message': 'Login successful',
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+        }, status=status.HTTP_200_OK)
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
