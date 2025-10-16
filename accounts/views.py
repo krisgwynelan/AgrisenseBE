@@ -1,15 +1,21 @@
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
-from django.contrib.auth import authenticate, login, logout, get_user_model
+from rest_framework import status
+from django.contrib.auth import authenticate, login, get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
-from .models import PasswordResetOTP
+from django.utils import timezone
+from datetime import datetime, timedelta
+
+from .models import PasswordResetOTP, DailySummary
 from .serializers import SensorReadingSerializer, DailySummarySerializer
-from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 User = get_user_model()
 
+# ✅ LOGIN USER
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([])
@@ -22,8 +28,11 @@ def login_user(request):
     if user is None:
         return Response({'detail': 'Invalid credentials'}, status=401)
 
-    # ✅ Create session (this makes request.session usable for Channels)
     login(request, user)
+
+    # ✅ Generate JWT tokens
+    refresh = RefreshToken.for_user(user)
+    access_token = str(refresh.access_token)
 
     return Response({
         'message': 'Login successful',
@@ -32,8 +41,11 @@ def login_user(request):
         'first_name': user.first_name,
         'last_name': user.last_name,
         'email': user.email,
+        'token': access_token,
     })
 
+
+# ✅ REGISTER USER
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([])
@@ -66,9 +78,11 @@ def register_user(request):
     return Response({'message': 'User registered successfully.'}, status=201)
 
 
-
 # ✅ SEND RESET OTP
+@csrf_exempt
 @api_view(['POST'])
+@permission_classes([])
+@authentication_classes([])
 def send_reset_otp(request):
     email = request.data.get('email')
     if not email:
@@ -77,15 +91,20 @@ def send_reset_otp(request):
     try:
         user = User.objects.get(email=email)
         otp = get_random_string(length=6, allowed_chars='0123456789')
-        PasswordResetOTP.objects.update_or_create(user=user, defaults={'otp': otp})
+
+        # Delete old OTP if it exists
+        PasswordResetOTP.objects.filter(user=user).delete()
+
+        PasswordResetOTP.objects.create(user=user, otp=otp)
 
         send_mail(
-            'AgriSense Password Reset OTP',
-            f'Your OTP for password reset is: {otp}',
-            'noreply@agrisense.com',
-            [email],
+            subject='AgriSense Password Reset OTP',
+            message=f'Your OTP for password reset is: {otp}\n\nThis OTP will expire in 10 minutes.',
+            from_email='noreply@agrisense.com',
+            recipient_list=[email],
             fail_silently=False,
         )
+
         return Response({'message': 'OTP sent to your email.'}, status=200)
 
     except User.DoesNotExist:
@@ -93,7 +112,10 @@ def send_reset_otp(request):
 
 
 # ✅ VERIFY OTP
+@csrf_exempt
 @api_view(['POST'])
+@permission_classes([])
+@authentication_classes([])
 def verify_otp(request):
     email = request.data.get('email')
     otp = request.data.get('otp')
@@ -103,15 +125,26 @@ def verify_otp(request):
     try:
         user = User.objects.get(email=email)
         record = PasswordResetOTP.objects.get(user=user)
+
+        # Expire OTP after 10 minutes
+        if timezone.now() - record.created_at > timedelta(minutes=10):
+            record.delete()
+            return Response({'message': 'OTP expired. Please request a new one.'}, status=400)
+
         if record.otp == otp:
             return Response({'message': 'OTP verified.'}, status=200)
-        return Response({'message': 'Invalid OTP.'}, status=400)
+        else:
+            return Response({'message': 'Invalid OTP.'}, status=400)
+
     except (User.DoesNotExist, PasswordResetOTP.DoesNotExist):
         return Response({'message': 'Invalid request.'}, status=400)
 
 
 # ✅ RESET PASSWORD
+@csrf_exempt
 @api_view(['POST'])
+@permission_classes([])
+@authentication_classes([])
 def reset_password(request):
     email = request.data.get('email')
     new_password = request.data.get('new_password')
@@ -127,14 +160,20 @@ def reset_password(request):
         user = User.objects.get(email=email)
         user.set_password(new_password)
         user.save()
+
+        # Delete used OTP
         PasswordResetOTP.objects.filter(user=user).delete()
+
         return Response({'message': 'Password reset successful.'}, status=200)
     except User.DoesNotExist:
         return Response({'message': 'User not found.'}, status=404)
 
 
 # ✅ STORE SENSOR READING
+@csrf_exempt
 @api_view(['POST'])
+@permission_classes([])
+@authentication_classes([])
 def store_sensor_reading(request):
     serializer = SensorReadingSerializer(data=request.data)
     if serializer.is_valid():
@@ -143,13 +182,47 @@ def store_sensor_reading(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ✅ STORE DAILY SUMMARY
+# ✅ STORE DAILY SUMMARY (blocks future dates)
+@csrf_exempt
 @api_view(['POST'])
+@permission_classes([])
+@authentication_classes([])
 def store_daily_summary(request):
-    serializer = DailySummarySerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    """
+    Store daily summary only if the date is today or in the past.
+    Reject storing summaries for future dates.
+    """
+    try:
+        date_str = request.data.get("date")
+        if not date_str:
+            return Response({"error": "Date is required."}, status=400)
 
+        selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        today = timezone.now().date()
 
+        # ❌ Prevent storing data for future dates
+        if selected_date > today:
+            return Response(
+                {"error": "You cannot store data for future dates."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ✅ If date already exists → update it, else create new
+        from .models import DailySummary  # ensure model is imported correctly
+        existing_summary = DailySummary.objects.filter(date=selected_date).first()
+
+        serializer = DailySummarySerializer(
+            instance=existing_summary, data=request.data, partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            action = "updated" if existing_summary else "created"
+            return Response(
+                {"message": f"Daily summary {action} successfully.", "data": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
