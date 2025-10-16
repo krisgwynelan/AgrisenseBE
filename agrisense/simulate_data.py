@@ -1,4 +1,4 @@
-# simulate_data.py
+# agrusense>simulate_data.py
 import os, django, time, random
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer

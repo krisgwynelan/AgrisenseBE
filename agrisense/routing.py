@@ -1,7 +1,8 @@
+# agrisense/routing.py
 from django.urls import re_path
-from agrisense.consumers import SoilConsumer, NotificationConsumer
+from . import consumers
 
 websocket_urlpatterns = [
-    re_path(r'ws/soil/$', SoilConsumer.as_asgi()),
-    re_path(r'ws/notifications/$', NotificationConsumer.as_asgi()),
+    re_path(r"ws/soil/$", consumers.SoilConsumer.as_asgi()),
+    re_path(r"ws/notifications/$", consumers.NotificationConsumer.as_asgi()),
 ]
