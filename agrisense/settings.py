@@ -4,6 +4,8 @@ Django settings for agrisense project.
 
 from pathlib import Path
 from celery.schedules import crontab
+from celery.schedules import schedule
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -96,14 +98,17 @@ CHANNEL_LAYERS = {
 }
 
 # ✅ Celery configuration
+
 CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+
 CELERY_BEAT_SCHEDULE = {
-    "send-daily-soil-summary": {
+    "send-soil-summary-every-5-seconds": {
         "task": "accounts.tasks.send_daily_summary",
-        "schedule": crontab(hour=23, minute=59),
+        "schedule": timedelta(seconds=20),  # runs every 5 seconds
     },
 }
+
 
 AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
 AUTH_USER_MODEL = 'accounts.CustomUser'

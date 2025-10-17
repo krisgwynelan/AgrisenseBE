@@ -4,6 +4,12 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework_simplejwt.tokens import AccessToken
 from channels.db import database_sync_to_async
 import jwt
+from channels.auth import AuthMiddlewareStack
+from urllib.parse import parse_qs
+from django.contrib.auth import get_user_model
+from django.db import close_old_connections
+
+User = get_user_model()
 
 
 class JWTAuthMiddleware(BaseMiddleware):
@@ -50,4 +56,31 @@ class JWTAuthMiddleware(BaseMiddleware):
         try:
             return CustomUser.objects.get(id=user_id)
         except CustomUser.DoesNotExist:
+            return AnonymousUser()
+
+class AllowAnonymousUserMiddleware(BaseMiddleware):
+    async def __call__(self, scope, receive, send):
+        # Close old DB connections (important)
+        close_old_connections()
+
+        # Get token from query string (optional if you want auth)
+        query_string = parse_qs(scope.get("query_string", b"").decode())
+        token = query_string.get("token")
+        
+        # Assign user
+        if token:
+            # Implement token authentication if needed
+            scope["user"] = await self.get_user_from_token(token[0])
+        else:
+            scope["user"] = AnonymousUser()
+
+        return await super().__call__(scope, receive, send)
+
+    @staticmethod
+    async def get_user_from_token(token):
+        # Your token validation logic here
+        try:
+            user = await User.objects.aget(auth_token=token)
+            return user
+        except User.DoesNotExist:
             return AnonymousUser()

@@ -54,7 +54,7 @@ class SoilConsumer(AsyncWebsocketConsumer):
                     "data": fake_data
                 }))
 
-                await asyncio.sleep(30)  # change this to 5 for faster testing
+                await asyncio.sleep(20)  # change this to 5 for faster testing
         except Exception as e:
             print(f"⚠️ Soil data loop stopped: {e}")
 
@@ -63,26 +63,25 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         user = self.scope["user"]
 
+        # ✅ Allow anonymous users
         if user.is_anonymous:
-            print("❌ Anonymous user tried to connect to Notification WebSocket")
-            await self.close()
-            return
+            # Assign a temporary guest group
+            self.group_name = f"guest_{random.randint(1000, 9999)}"
+            print(f"🌟 Anonymous user connected to Notification WebSocket as {self.group_name}")
+        else:
+            self.group_name = f"user_{user.id}"
+            print(f"✅ Authenticated user connected: {user.username}")
 
-        self.group_name = f"user_{user.id}"
-
-        # ✅ Add user to their notification group
+        # Add to the group
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        print(f"✅ Notification WebSocket connected for {user.username}")
 
     async def disconnect(self, close_code):
-        user = self.scope["user"]
-        if not user.is_anonymous:
-            await self.channel_layer.group_discard(f"user_{user.id}", self.channel_name)
-        print(f"❌ Notification WebSocket disconnected for {user}")
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        print(f"❌ Notification WebSocket disconnected for {getattr(self.scope['user'], 'username', 'Guest')}")
 
     async def daily_summary(self, event):
-        """Receive and send daily summary notifications"""
+        """Send daily summary to frontend"""
         await self.send(text_data=json.dumps({
             "type": "daily_summary",
             "title": event["title"],
