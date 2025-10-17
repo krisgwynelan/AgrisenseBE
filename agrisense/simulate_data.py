@@ -40,4 +40,4 @@ def send_random_data():
 # ⏱ Run every 30 seconds
 while True:
     send_random_data()
-    time.sleep(5)
+    time.sleep(30)
