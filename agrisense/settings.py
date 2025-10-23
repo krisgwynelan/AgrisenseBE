@@ -98,17 +98,18 @@ CHANNEL_LAYERS = {
 }
 
 # ✅ Celery configuration
+from celery.schedules import crontab 
+
 
 CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
 
 CELERY_BEAT_SCHEDULE = {
-    "send-soil-summary-every-5-seconds": {
+    "send-daily-notification-at-midnight": {
         "task": "accounts.tasks.send_daily_summary",
-        "schedule": timedelta(seconds=20),  # runs every 5 seconds
+        "schedule": crontab(hour=0, minute=0),  # runs every 12 AM
     },
 }
-
 
 AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
 AUTH_USER_MODEL = 'accounts.CustomUser'
@@ -124,16 +125,11 @@ REST_FRAMEWORK = {
     )
 }
 
-ALLOWED_HOSTS = ["*", "10.187.45.51", "localhost"]
+ALLOWED_HOSTS = ["*", "192.168.1.23", "localhost"]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:19006",
-    "http://10.187.45.51:19006",
-    "exp://10.187.45.51:19000",
+    "http://192.168.1.23:19006",
+    "exp://192.168.1.23:19000",
 ]
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
-}
