@@ -54,6 +54,7 @@ class DailySummary(models.Model):
     nitrogen = models.FloatField()
     phosphorus = models.FloatField()
     potassium = models.FloatField()
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"Daily Summary for {self.date}"
+        return f"Daily Summary - {self.date}"

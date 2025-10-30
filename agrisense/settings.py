@@ -125,11 +125,11 @@ REST_FRAMEWORK = {
     )
 }
 
-ALLOWED_HOSTS = ["*", "192.168.1.23", "localhost"]
+ALLOWED_HOSTS = ["*", "172.22.102.217", "localhost"]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:19006",
-    "http://192.168.1.23:19006",
-    "exp://192.168.1.23:19000",
+    "http://172.22.102.217:19006",
+    "exp://172.22.102.217:19000",
 ]
 

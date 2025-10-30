@@ -9,5 +9,6 @@ urlpatterns = [
     path('verify-otp/', views.verify_otp, name='verify_otp'),
     path('reset-password/', views.reset_password, name='reset_password'),
     path('store-reading/', views.store_sensor_reading, name='store_sensor_reading'),
+    path("soil-summary/", views.soil_summary, name="soil_summary"),
     path('store-daily-summary/', views.store_daily_summary, name='store_daily_summary'),
 ]
