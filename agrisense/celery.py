@@ -13,6 +13,8 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     "send-notification-every-midnight": {
         "task": "accounts.tasks.send_daily_summary",
-        "schedule": crontab(hour=0, minute=0),  # <-- runs exactly at 12:00 AM
+        "schedule": crontab(minute=0, hour=0), # <-- runs exactly at 12:00 AM
     },
 }
+
+#

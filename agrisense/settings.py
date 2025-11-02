@@ -107,9 +107,11 @@ CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
 CELERY_BEAT_SCHEDULE = {
     "send-daily-notification-at-midnight": {
         "task": "accounts.tasks.send_daily_summary",
-        "schedule": crontab(hour=0, minute=0),  # runs every 12 AM
+        "schedule": crontab(minute=0, hour=0),  # runs every 12 AM
     },
 }
+
+##"schedule": crontab(minute="*/5"),
 
 AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
 AUTH_USER_MODEL = 'accounts.CustomUser'
@@ -125,11 +127,11 @@ REST_FRAMEWORK = {
     )
 }
 
-ALLOWED_HOSTS = ["*", "192.168.1.23", "localhost"]
+ALLOWED_HOSTS = ["*", "192.168.125.51", "localhost"]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:19006",
-    "http://192.168.1.23:19006",
-    "exp://192.168.1.23:19000",
+    "http://192.168.125.51:19006",
+    "exp://192.168.125.51:19000",
 ]
 
